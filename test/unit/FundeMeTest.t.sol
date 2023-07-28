@@ -2,8 +2,8 @@
 pragma solidity ^0.8.18;
 
 import {Test, console} from "forge-std/Test.sol";
-import {FundMe} from "../src/FundMe.sol";
-import {DeployFundMe} from "../script/DeployFundMe.s.sol";
+import {FundMe} from "../../src/FundMe.sol";
+import {DeployFundMe} from "../../script/DeployFundMe.s.sol";
 
 contract FundMeTest is Test {
     FundMe fundMe;
@@ -74,5 +74,35 @@ contract FundMeTest is Test {
             startingFundeMeBalance + startingOwnerBalance,
             endingOwnerBalance
         );
+    }
+
+    function testWithdrawFromMultipleFunders() public funded {
+        // you can no longer generate address using uint256 instead use uint160
+        uint160 numberOfFunders = 10;
+        uint160 startingIndex = 1;
+
+        for (uint160 i = startingIndex; i <= numberOfFunders; i++) {
+            // vm.prank
+            // vm.deal
+            // vm.hoax does the same
+            hoax(address(i), ETH_VALUE);
+            fundMe.fund{value: ETH_VALUE}();
+        }
+        address ownerAddress = fundMe.getOwner();
+
+        uint256 startingOwnerBalance = ownerAddress.balance;
+        uint256 startingFundeMeBalance = address(fundMe).balance;
+
+        vm.prank(ownerAddress);
+        fundMe.withdraw();
+
+        uint256 endingOwnerBalance = ownerAddress.balance;
+        uint256 endingFundeMeBalance = address(fundMe).balance;
+
+        assertEq(
+            startingOwnerBalance + startingFundeMeBalance,
+            endingOwnerBalance
+        );
+        assertEq(endingFundeMeBalance, 0);
     }
 }
